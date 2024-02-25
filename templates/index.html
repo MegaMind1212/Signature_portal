@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signature Pad</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            padding: 0;
+            background-color: #000; /* Change background color to black */
+            color: #fff; /* Change text color to white */
+        }
+        #signature-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            background-color: #fff;
+            border: 2px solid #000;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        #signature-pad {
+            width: 100%;
+            max-width: 400px;
+            cursor: crosshair;
+        }
+        .button-container {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            max-width: 400px;
+            margin-top: 10px;
+        }
+        button {
+            margin: 5px;
+            padding: 10px 20px;
+            background-color: #007bff; /* Change button background color */
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #0056b3; /* Change button hover background color */
+        }
+        select {
+            margin: 5px;
+            padding: 8px;
+            border-radius: 4px;
+            background-color: #fff; /* Change select background color */
+            color: #000; /* Change select text color */
+        }
+
+        /* Media query for smaller screens */
+        @media (max-width: 600px) {
+            #signature-container, .button-container {
+                flex-direction: column; /* Change flex direction for smaller screens */
+                align-items: center; /* Center align for smaller screens */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="signature-container">
+        <canvas id="signature-pad" width="400" height="200"></canvas>
+    </div>
+    <div class="button-container">
+        <button onclick="clearSignature()">Clear</button>
+        <button onclick="toggleEraser()">Eraser</button>
+        <select id="background-color-select" onchange="changeBackgroundColor()">
+            <option value="transparent">Transparent</option>
+            <option value="#ffffff">White</option>
+            <option value="#000000">Black</option>
+            <!-- Add more color options as needed -->
+        </select>
+        <button onclick="saveSignature('pdf')">Save as PDF</button>
+        <button onclick="saveSignature('png')">Save as PNG</button>
+        <button onclick="sendEmail()">Send via Email</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('signature-pad');
+        const ctx = canvas.getContext('2d');
+        let isDrawing = false;
+        let isErasing = false;
+        let lastX = 0;
+        let lastY = 0;
+
+        canvas.addEventListener('mousedown', (e) => {
+            isDrawing = true;
+            [lastX, lastY] = [e.offsetX, e.offsetY];
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (!isDrawing) return;
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(e.offsetX, e.offsetY);
+            ctx.strokeStyle = isErasing ? '#fff' : '#000';
+            ctx.lineWidth = isErasing ? 10 : 2;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+            [lastX, lastY] = [e.offsetX, e.offsetY];
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            isDrawing = false;
+        });
+
+        function clearSignature() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function toggleEraser() {
+            isErasing = !isErasing;
+        }
+
+        function changeBackgroundColor() {
+            const selectedColor = document.getElementById('background-color-select').value;
+            document.getElementById('signature-container').style.backgroundColor = selectedColor;
+        }
+
+        function saveSignature(type) {
+            let signatureData;
+            if (type === 'pdf') {
+                signatureData = canvas.toDataURL('image/jpeg');
+            } else if (type === 'png') {
+                signatureData = canvas.toDataURL('image/png');
+            }
+            const form = document.createElement('form');
+            form.method = 'post';
+            form.action = '/save_signature';
+            const inputSignature = document.createElement('input');
+            inputSignature.type = 'hidden';
+            inputSignature.name = 'signature';
+            inputSignature.value = signatureData;
+            const inputType = document.createElement('input');
+            inputType.type = 'hidden';
+            inputType.name = 'signature_type';
+            inputType.value = type;
+            form.appendChild(inputSignature);
+            form.appendChild(inputType);
+            document.body.appendChild(form);
+            form.submit();
+        }
+
+        function sendEmail() {
+            const signatureData = canvas.toDataURL('image/jpeg');
+            const email = prompt("Please enter your email address:");
+            if (email) {
+                const subject = "Signature";
+                const body = "Please find attached my signature.";
+                const mailtoLink = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}&attachment=${signatureData}`;
+                window.location.href = mailtoLink;
+            }
+        }
+    </script>
+</body>
+</html>
